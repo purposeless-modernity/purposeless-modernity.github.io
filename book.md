@@ -2,7 +2,7 @@
 
 *» This is a free book located at "https://purposeless-modernity.github.io/" if you're reading it anywhere else, you're retarded.*
 
-*» "Society carves a man, that man on his death bed, will be forever closer to the animals whose forest he destroyed, than another man." - S*
+*» "Society carves a man, that man on his death bed, will be forever closer to the animals whose forest he replaced with metal and concrete, than another man." - S*
 
 *» Fair warning, this book is fiction, it acts to further ideas or convey a meaning, but that does not mean everything is fiction, take what you will as literal.*
 
