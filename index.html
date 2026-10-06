@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="icon.ico" type="image/x-icon">  
 <title>Purposeless Modernity</title>
+<link rel="icon" href="icon.ico" type="image/x-icon">
 <style>
 :root{
   --p:28px;
@@ -18,6 +18,7 @@
   --muted:#777777;
   --font-main:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;
   --font-ui:system-ui,-apple-system,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
 }
 
 *,::before,::after{box-sizing:border-box}
@@ -133,6 +134,41 @@ main{
   font-style:italic;
 }
 
+#book ul,
+#book ol{
+  margin:0 0 1em;
+  padding-left:1.5em;
+}
+
+#book li{margin-bottom:0.3em}
+
+#book pre{
+  margin:0 0 1em;
+  padding:12px;
+  background:#1a1a1a;
+  border:1px solid var(--line);
+  border-radius:4px;
+  overflow-x:auto;
+}
+
+#book code{
+  font-family:var(--font-mono);
+  font-size:0.9em;
+  background:#1a1a1a;
+  padding:0.1em 0.3em;
+  border-radius:3px;
+}
+
+#book pre code{
+  background:none;
+  padding:0;
+}
+
+#book a{
+  color:#aaa;
+  text-decoration:underline;
+}
+
 nav{
   display:grid;
   grid-template-columns:1fr auto 1fr;
@@ -198,7 +234,9 @@ input:focus{outline:none;border-color:var(--muted)}
 
 @media (max-width:700px){
   :root{--edge:12px;--p:18px;--s:18px}
-  #book{column-count:1}
+  body{font-size:15px;line-height:1.7}
+  #book{column-count:1;text-align:left;hyphens:none}
+  #book h1{font-size:22px}
   .sheet::before{width:100%;border-right:1px solid var(--line)}
   .sheet::after{display:none}
   nav{gap:10px}
@@ -223,14 +261,105 @@ const book = $('book'), go = $('go');
 let page = +(document.cookie.match(/bookpage=(\d+)/)?.[1] || 1), pages = 1, cols = 2, x0 = 0;
 
 const gap = () => parseFloat(getComputedStyle(book).columnGap);
-const inline = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
-const block = b => {
-  const h = b.match(/^(#{1,3}) (.*)/);
-  if (h) return `<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`;
-  if (/^[-*_]{3,}$/.test(b)) return '<hr>';
-  if (b[0] === '>') return `<blockquote>${inline(b.replace(/^> ?/gm, ''))}</blockquote>`;
-  return `<p>${inline(b)}</p>`;
-};
+
+function escapeHtml(text) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function inlineFormat(text) {
+  let s = escapeHtml(text);
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/__(.+?)__/g, '<strong>$1</strong>');
+  s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  s = s.replace(/_(.+?)_/g, '<em>$1</em>');
+  s = s.replace(/`(.+?)`/g, '<code>$1</code>');
+  return s;
+}
+
+function parseMarkdown(md) {
+  const lines = md.replace(/\r\n/g, '\n').split('\n');
+  let html = '';
+  let i = 0;
+  while (i < lines.length) {
+    let line = lines[i];
+    // Code block
+    if (line.trim().startsWith('```')) {
+      let code = '';
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+        code += lines[i] + '\n';
+        i++;
+      }
+      i++;
+      html += `<pre><code>${escapeHtml(code)}</code></pre>\n`;
+      continue;
+    }
+    // Headers
+    let hMatch = line.match(/^(#{1,6})\s+(.*)/);
+    if (hMatch) {
+      const level = hMatch[1].length;
+      html += `<h${level}>${inlineFormat(hMatch[2])}</h${level}>\n`;
+      i++;
+      continue;
+    }
+    // Horizontal rule
+    if (/^[-*_]{3,}\s*$/.test(line.trim())) {
+      html += '<hr>\n';
+      i++;
+      continue;
+    }
+    // Blockquote
+    if (line.trim().startsWith('>')) {
+      let quote = '';
+      while (i < lines.length && lines[i].trim().startsWith('>')) {
+        quote += lines[i].replace(/^>\s?/, '') + '\n';
+        i++;
+      }
+      html += `<blockquote>${inlineFormat(quote.trim())}</blockquote>\n`;
+      continue;
+    }
+    // Unordered list
+    if (/^\s*[-*+]\s+/.test(line)) {
+      let list = '';
+      while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
+        list += `<li>${inlineFormat(lines[i].replace(/^\s*[-*+]\s+/, ''))}</li>\n`;
+        i++;
+      }
+      html += `<ul>${list}</ul>\n`;
+      continue;
+    }
+    // Ordered list
+    if (/^\s*\d+\.\s+/.test(line)) {
+      let list = '';
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        list += `<li>${inlineFormat(lines[i].replace(/^\s*\d+\.\s+/, ''))}</li>\n`;
+        i++;
+      }
+      html += `<ol>${list}</ol>\n`;
+      continue;
+    }
+    // Paragraph
+    if (line.trim() !== '') {
+      let para = line;
+      i++;
+      while (i < lines.length && lines[i].trim() !== '' && 
+             !lines[i].trim().startsWith('#') &&
+             !lines[i].trim().startsWith('>') &&
+             !/^\s*[-*+]\s+/.test(lines[i]) &&
+             !/^\s*\d+\.\s+/.test(lines[i]) &&
+             !/^[-*_]{3,}\s*$/.test(lines[i].trim()) &&
+             !lines[i].trim().startsWith('```')) {
+        para += ' ' + lines[i];
+        i++;
+      }
+      html += `<p>${inlineFormat(para)}</p>\n`;
+      continue;
+    }
+    i++;
+  }
+  return html;
+}
 
 const show = p => {
   page = Math.min(Math.max(p, 1), pages);
@@ -268,7 +397,7 @@ window.ontouchend = e => {
 };
 
 const md = await fetch('book.md').then(r => r.ok ? r.text() : 'Add a book.md file next to index.html.');
-book.innerHTML = md.replace(/\r/g, '').replace(/^(#{1,3} .*|[-*_]{3,})$/gm, '\n$1\n').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean).map(block).join('');
+book.innerHTML = parseMarkdown(md);
 await document.fonts.ready;
 measure();
 </script>
