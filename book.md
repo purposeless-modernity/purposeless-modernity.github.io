@@ -1,4 +1,4 @@
-![Ouroboros behind "purposeless modernity"](main/images/opm.png)
+![Ouroboros behind "purposeless modernity"](images/opm.png)
 
 *» This is a free book located at "https://purposeless-modernity.github.io/" if you're reading it anywhere else, you're retarded.*
 
