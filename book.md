@@ -1,4 +1,5 @@
 ![Ouroboros behind "purposeless modernity"](images/opm.png)
+
 *» This is a free book located at "https://purposeless-modernity.github.io/" if you're reading it anywhere else, you're retarded.*
 
 *» "Society carves a man, that man on his death bed, will be forever closer to the animals whose forest he destroyed, than another man." - S*
